@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ViewBoost — Multi Window Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --card: #191919;
+    --border: #2a2a2a;
+    --accent: #e8ff47;
+    --accent2: #ff4757;
+    --accent3: #47c9ff;
+    --text: #f0f0f0;
+    --muted: #666;
+    --green: #39ff8f;
+  }
+
+  body {
+    font-family: 'Space Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .logo-icon svg { width: 16px; height: 16px; }
+
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+  }
+
+  .logo-text span { color: var(--accent); }
+
+  .header-stats {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .stat {
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .stat-lbl {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  .header-controls {
+    display: flex;
+    gap: 10px;
+  }
+
+  /* BUTTONS */
+  .btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    border: 1.5px solid;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: #d4eb30; border-color: #d4eb30; transform: translateY(-1px); }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--accent2);
+    border-color: var(--accent2);
+  }
+  .btn-danger:hover { background: var(--accent2); color: #fff; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border-color: var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--text); }
+
+  .btn-green {
+    background: transparent;
+    color: var(--green);
+    border-color: var(--green);
+  }
+  .btn-green:hover { background: var(--green); color: #000; }
+
+  .btn-blue {
+    background: transparent;
+    color: var(--accent3);
+    border-color: var(--accent3);
+  }
+  .btn-blue:hover { background: var(--accent3); color: #000; }
+
+  /* TOOLBAR */
+  .toolbar {
+    padding: 14px 28px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .divider {
+    width: 1px;
+    height: 28px;
+    background: var(--border);
+  }
+
+  .layout-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .layout-btns {
+    display: flex;
+    gap: 4px;
+  }
+
+  .layout-btn {
+    width: 34px; height: 28px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    padding: 0;
+  }
+  .layout-btn:hover { border-color: var(--accent); }
+  .layout-btn.active { border-color: var(--accent); background: #1e2200; }
+  .layout-btn svg { width: 16px; height: 16px; fill: var(--muted); }
+  .layout-btn.active svg { fill: var(--accent); }
+
+  /* MAIN GRID */
+  main {
+    padding: 24px 28px;
+  }
+
+  #grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  #grid.cols-1 { grid-template-columns: 1fr; }
+  #grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  #grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  #grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+  /* PLAYER CARD */
+  .player-card {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.2s;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .player-card:hover { border-color: #3a3a3a; }
+  .player-card.active-card { border-color: var(--accent) !important; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    background: #141414;
+  }
+
+  .card-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--accent);
+    background: #1e2200;
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 1px 7px;
+    min-width: 26px;
+    text-align: center;
+  }
+
+  .card-url-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 5px 10px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .card-url-input::placeholder { color: var(--muted); }
+  .card-url-input:focus { border-color: var(--accent3); }
+
+  .card-load-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 5px 12px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .card-load-btn:hover { background: #d4eb30; }
+
+  .card-remove-btn {
+    width: 24px; height: 24px;
+    background: transparent;
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    font-size: 14px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .card-remove-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .player-wrap {
+    position: relative;
+    aspect-ratio: 16/9;
+    background: #0d0d0d;
+    overflow: hidden;
+  }
+
+  .player-wrap iframe {
+    width: 100%; height: 100%;
+    border: none;
+    display: block;
+  }
+
+  .player-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--muted);
+  }
+
+  .placeholder-icon {
+    width: 48px; height: 48px;
+    border: 2px dashed #333;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+
+  .placeholder-text {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .card-footer {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--border);
+  }
+
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    display: inline-block;
+    margin-right: 6px;
+  }
+  .status-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .status-text { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  .card-watch-time {
+    font-size: 10px;
+    color: var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+  }
+
+  /* ADD CARD BUTTON */
+  .add-card {
+    background: transparent;
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    min-height: 180px;
+    transition: all 0.2s;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .add-card:hover { border-color: var(--accent); color: var(--accent); background: #1e2200; }
+  .add-card-icon { font-size: 28px; line-height: 1; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    width: 480px;
+    max-width: 90vw;
+  }
+
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 6px;
+  }
+
+  .modal-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .bulk-textarea {
+    width: 100%;
+    height: 180px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 12px;
+    resize: vertical;
+    outline: none;
+    line-height: 1.6;
+  }
+  .bulk-textarea:focus { border-color: var(--accent3); }
+  .bulk-textarea::placeholder { color: var(--muted); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    justify-content: flex-end;
+  }
+
+  /* LIVE TICKER */
+  .ticker-bar {
+    background: #0e1100;
+    border-bottom: 1px solid #2a3000;
+    padding: 6px 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    overflow: hidden;
+  }
+
+  .ticker-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    white-space: nowrap;
+    border: 1px solid var(--accent);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+
+  .ticker-scroll {
+    overflow: hidden;
+    flex: 1;
+  }
+
+  .ticker-inner {
+    display: flex;
+    gap: 48px;
+    animation: ticker 30s linear infinite;
+    white-space: nowrap;
+  }
+
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  .ticker-item {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+
+  .ticker-item span { color: var(--text); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #555; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="black"><path d="M8 5v14l11-7z"/></svg>
+    </div>
+    <span class="logo-text">View<span>Boost</span></span>
+  </div>
+
+  <div class="header-stats">
+    <div class="stat">
+      <div class="stat-val" id="stat-windows">0</div>
+      <div class="stat-lbl">Windows</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-active">0</div>
+      <div class="stat-lbl">Active</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="stat-time">0m</div>
+      <div class="stat-lbl">Total Watchtime</div>
+    </div>
+  </div>
+
+  <div class="header-controls">
+    <button class="btn btn-ghost" onclick="openBulkModal()">⚡ Bulk Add</button>
+    <button class="btn btn-green" onclick="playAll()">▶ Play All</button>
+    <button class="btn btn-danger" onclick="clearAll()">✕ Clear All</button>
+  </div>
+</header>
+
+<!-- TICKER -->
+<div class="ticker-bar">
+  <div class="ticker-label">● Live</div>
+  <div class="ticker-scroll">
+    <div class="ticker-inner" id="ticker">
+      <span class="ticker-item">Windows Active: <span id="t1">0</span></span>
+      <span class="ticker-item">Total Watch Time: <span id="t2">0 min</span></span>
+      <span class="ticker-item">Tip: Mute tabs to allow multiple videos to play simultaneously</span>
+      <span class="ticker-item">Paste YouTube URL to load video in each window</span>
+      <span class="ticker-item">Use Bulk Add to load many videos at once</span>
+      <span class="ticker-item">Windows Active: <span>0</span></span>
+      <span class="ticker-item">Total Watch Time: <span>0 min</span></span>
+      <span class="ticker-item">Tip: Mute tabs to allow multiple videos to play simultaneously</span>
+      <span class="ticker-item">Paste YouTube URL to load video in each window</span>
+      <span class="ticker-item">Use Bulk Add to load many videos at once</span>
+    </div>
+  </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="toolbar-group">
+    <span class="layout-label">Layout</span>
+    <div class="layout-btns">
+      <button class="layout-btn active" data-cols="1" onclick="setLayout(1, this)" title="1 column">
+        <svg viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="4" rx="1"/><rect x="2" y="8" width="12" height="4" rx="1"/></svg>
+      </button>
+      <button class="layout-btn" data-cols="2" onclick="setLayout(2, this)" title="2 columns">
+        <svg viewBox="0 0 16 16"><rect x="1" y="2" width="6" height="5" rx="1"/><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="1" y="9" width="6" height="5" rx="1"/><rect x="9" y="9" width="6" height="5" rx="1"/></svg>
+      </button>
+      <button class="layout-btn" data-cols="3" onclick="setLayout(3, this)" title="3 columns">
+        <svg viewBox="0 0 16 16"><rect x="1" y="3" width="4" height="10" rx="1"/><rect x="6" y="3" width="4" height="10" rx="1"/><rect x="11" y="3" width="4" height="10" rx="1"/></svg>
+      </button>
+      <button class="layout-btn" data-cols="4" onclick="setLayout(4, this)" title="4 columns">
+        <svg viewBox="0 0 16 16"><rect x="1" y="2" width="3" height="5" rx="0.5"/><rect x="5" y="2" width="3" height="5" rx="0.5"/><rect x="9" y="2" width="3" height="5" rx="0.5"/><rect x="13" y="2" width="3" height="5" rx="0.5"/><rect x="1" y="9" width="3" height="5" rx="0.5"/><rect x="5" y="9" width="3" height="5" rx="0.5"/><rect x="9" y="9" width="3" height="5" rx="0.5"/><rect x="13" y="9" width="3" height="5" rx="0.5"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="toolbar-group">
+    <button class="btn btn-primary" onclick="addPlayer()">+ Add Window</button>
+    <button class="btn btn-blue" onclick="addPlayer(); addPlayer(); addPlayer(); addPlayer()">++ Add 4 Windows</button>
+  </div>
+  <div class="divider"></div>
+  <div class="toolbar-group">
+    <span style="font-size:10px; color:var(--muted);">Autoplay:</span>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+      <input type="checkbox" id="autoplay-toggle" checked style="accent-color:var(--accent); width:14px; height:14px;">
+      <span style="font-size:10px;color:var(--text)">ON</span>
+    </label>
+    <span style="font-size:10px; color:var(--muted); margin-left:8px;">Muted:</span>
+    <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+      <input type="checkbox" id="muted-toggle" checked style="accent-color:var(--accent); width:14px; height:14px;">
+      <span style="font-size:10px;color:var(--text)">ON</span>
+    </label>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main>
+  <div id="grid" class="cols-2"></div>
+</main>
+
+<!-- BULK MODAL -->
+<div class="modal-overlay" id="bulkModal">
+  <div class="modal">
+    <div class="modal-title">⚡ Bulk Add Videos</div>
+    <div class="modal-sub">Paste one YouTube URL per line. All videos will be loaded into separate windows automatically.</div>
+    <textarea class="bulk-textarea" id="bulkUrls" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.youtube.com/watch?v=...&#10;https://youtu.be/...&#10;..."></textarea>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeBulkModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="loadBulk()">⚡ Load All</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let playerCount = 0;
+  let totalSeconds = 0;
+  let timerInterval = null;
+
+  function extractVideoId(url) {
+    url = url.trim();
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([a-zA-Z0-9_-]{11})/,
+      /^([a-zA-Z0-9_-]{11})$/
+    ];
+    for (const p of patterns) {
+      const m = url.match(p);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
+  function buildEmbedUrl(videoId) {
+    const autoplay = document.getElementById('autoplay-toggle').checked ? 1 : 0;
+    const muted = document.getElementById('muted-toggle').checked ? 1 : 0;
+    return `https://www.youtube.com/embed/${videoId}?autoplay=${autoplay}&mute=${muted}&enablejsapi=1&rel=0`;
+  }
+
+  function addPlayer(url = '') {
+    playerCount++;
+    const id = playerCount;
+    const grid = document.getElementById('grid');
+
+    const card = document.createElement('div');
+    card.className = 'player-card';
+    card.id = `card-${id}`;
+    card.dataset.hasVideo = 'false';
+
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="card-num">#${String(id).padStart(2,'0')}</span>
+        <input class="card-url-input" id="url-${id}" type="text" placeholder="Paste YouTube URL here..." value="${url}"
+          onkeydown="if(event.key==='Enter') loadVideo(${id})">
+        <button class="card-load-btn" onclick="loadVideo(${id})">Load</button>
+        <button class="card-remove-btn" onclick="removeCard(${id})" title="Remove">✕</button>
+      </div>
+      <div class="player-wrap" id="wrap-${id}">
+        <div class="player-placeholder" id="ph-${id}">
+          <div class="placeholder-icon">▶</div>
+          <div class="placeholder-text">No video loaded</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div>
+          <span class="status-dot" id="dot-${id}"></span>
+          <span class="status-text" id="status-${id}">Idle</span>
+        </div>
+        <span class="card-watch-time" id="wt-${id}">0:00</span>
+      </div>
+    `;
+
+    // Insert before "add" button if it exists
+    const addBtn = document.getElementById('add-card-btn');
+    if (addBtn) grid.insertBefore(card, addBtn);
+    else grid.appendChild(card);
+
+    updateStats();
+
+    if (url) {
+      setTimeout(() => loadVideo(id), 50);
+    }
+  }
+
+  function loadVideo(id) {
+    const input = document.getElementById(`url-${id}`);
+    const url = input.value.trim();
+    if (!url) return;
+
+    const videoId = extractVideoId(url);
+    if (!videoId) {
+      input.style.borderColor = 'var(--accent2)';
+      setTimeout(() => input.style.borderColor = '', 1500);
+      return;
+    }
+
+    input.style.borderColor = 'var(--green)';
+    setTimeout(() => input.style.borderColor = '', 1500);
+
+    const wrap = document.getElementById(`wrap-${id}`);
+    const ph = document.getElementById(`ph-${id}`);
+    const dot = document.getElementById(`dot-${id}`);
+    const status = document.getElementById(`status-${id}`);
+    const card = document.getElementById(`card-${id}`);
+
+    ph.style.display = 'none';
+    wrap.innerHTML = `<iframe src="${buildEmbedUrl(videoId)}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+
+    dot.className = 'status-dot live';
+    status.textContent = 'Playing';
+    card.dataset.hasVideo = 'true';
+    card.classList.add('active-card');
+
+    // Start per-card watch timer
+    startCardTimer(id);
+    updateStats();
+  }
+
+  function removeCard(id) {
+    const card = document.getElementById(`card-${id}`);
+    if (card) {
+      card.style.animation = 'none';
+      card.style.transition = 'opacity 0.2s, transform 0.2s';
+      card.style.opacity = '0';
+      card.style.transform = 'scale(0.95)';
+      setTimeout(() => { card.remove(); updateStats(); }, 200);
+    }
+  }
+
+  const cardTimers = {};
+  const cardSeconds = {};
+
+  function startCardTimer(id) {
+    if (cardTimers[id]) clearInterval(cardTimers[id]);
+    if (!cardSeconds[id]) cardSeconds[id] = 0;
+    cardTimers[id] = setInterval(() => {
+      cardSeconds[id]++;
+      const el = document.getElementById(`wt-${id}`);
+      if (el) {
+        const m = Math.floor(cardSeconds[id] / 60);
+        const s = cardSeconds[id] % 60;
+        el.textContent = `${m}:${String(s).padStart(2,'0')}`;
+      }
+      updateTotalTime();
+    }, 1000);
+  }
+
+  function updateTotalTime() {
+    let total = 0;
+    for (const k in cardSeconds) total += cardSeconds[k];
+    const mins = Math.floor(total / 60);
+    const secs = total % 60;
+    document.getElementById('stat-time').textContent = mins >= 60
+      ? `${Math.floor(mins/60)}h${mins%60}m`
+      : `${mins}m${String(secs).padStart(2,'0')}s`;
+    document.getElementById('t2').textContent = mins + ' min';
+  }
+
+  function updateStats() {
+    const cards = document.querySelectorAll('.player-card');
+    const active = document.querySelectorAll('.player-card[data-has-video="true"]');
+    document.getElementById('stat-windows').textContent = cards.length;
+    document.getElementById('stat-active').textContent = active.length;
+    document.getElementById('t1').textContent = active.length;
+  }
+
+  function playAll() {
+    document.querySelectorAll('.player-card').forEach(card => {
+      const id = card.id.replace('card-', '');
+      const input = document.getElementById(`url-${id}`);
+      if (input && input.value.trim()) loadVideo(parseInt(id));
+    });
+  }
+
+  function clearAll() {
+    if (!confirm('Remove all windows?')) return;
+    for (const k in cardTimers) clearInterval(cardTimers[k]);
+    document.getElementById('grid').innerHTML = '';
+    Object.keys(cardSeconds).forEach(k => delete cardSeconds[k]);
+    Object.keys(cardTimers).forEach(k => delete cardTimers[k]);
+    playerCount = 0;
+    updateStats();
+    document.getElementById('stat-time').textContent = '0m';
+  }
+
+  function setLayout(cols, btn) {
+    document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const grid = document.getElementById('grid');
+    grid.className = `cols-${cols}`;
+  }
+
+  function openBulkModal() {
+    document.getElementById('bulkModal').classList.add('open');
+  }
+
+  function closeBulkModal() {
+    document.getElementById('bulkModal').classList.remove('open');
+  }
+
+  function loadBulk() {
+    const lines = document.getElementById('bulkUrls').value.split('\n').map(l => l.trim()).filter(Boolean);
+    lines.forEach(url => addPlayer(url));
+    closeBulkModal();
+    document.getElementById('bulkUrls').value = '';
+  }
+
+  // Close modal on overlay click
+  document.getElementById('bulkModal').addEventListener('click', function(e) {
+    if (e.target === this) closeBulkModal();
+  });
+
+  // Init with 4 default windows
+  document.addEventListener('DOMContentLoaded', () => {
+    setLayout(2, document.querySelector('[data-cols="2"]'));
+    for (let i = 0; i < 4; i++) addPlayer();
+  });
+</script>
+</body>
+</html>
